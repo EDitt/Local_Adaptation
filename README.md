@@ -15,8 +15,9 @@ There were three main fitness components included in ASTER analyses:
   
 Two other fitness components were analyzed in subsets of data:
 - Number of seeds
+  -
 - Germination
-
+  -Plants were grown from seed in 2014 and followed through reproduction
 # Independent Variables
 ## Fixed Effects
 - Soil type: Sandstone or Serpentine (2 levels) 
