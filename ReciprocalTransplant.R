@@ -276,8 +276,48 @@ anova(rout15.inter, rout15.full) #p<0.0001
 ##############################################
 
 ### Predict number of fruits for each population x soil type in each year
-### Will use model that includes all pairwise interactions, but not 3-way interaction (can't compute SEs and not significant)
+### Will use model that includes all pairwise interactions, but not 3-way interaction (can't compute SEs for this model and interaction not significant)
+
+### Dataframe for predictions
+newdata <- expand.grid(Population=levels(redata$Population), SoilType=levels(redata$SoilType), Year=levels(redata$Year))
+
+### "Typical Individuals"
+newdata$Edge <- "Non-edge"
+
+### Add arbitrary values for response vector
+for (v in vars)
+  newdata[[v]] <- 1
+
+newdata$root <- 1 #add the root
+
+#now reshape this dataset
+renewdata <- reshape(newdata, varying = list(vars), direction = "long", timevar = "varb", times = as.factor(vars), v.names = "resp")
+
+## Fitness variable of interest: total number of fruits
+fit <- grepl("Num_frts", as.character(renewdata$varb))
+fit <- as.numeric(fit)
+renewdata$fit <- fit
+
+#check
+with(renewdata, sort(unique(as.character(varb)[fit == 0])))
+with(renewdata, sort(unique(as.character(varb)[fit == 1])))
+
+nind <-nrow (newdata) #num rows of df
+nnode <- length (vars) #3 variables
+amat <-array(0, c(nind, nnode, nind)) #this makes an empty array
+dim(amat)
+
+#set the components to be one for variable of interest (number of fruits) and zero for the others
+for (i in 1:nind)
+  amat[i, grep("Num_frts", vars), i] <- 1
 
 
+pout <- predict(aout1, newdata = renewdata, varvar = varb, idvar = id, root = root, se.fit = TRUE, amat = amat)
+pout$fit
+
+summary(pout) 
+bar <-cbind(pout$fit, pout$se.fit)
+dimnames(bar) <-list(as.character(newdata$Pop:newdata$Soil:newdata$Year), c("Estimate", "Std. Error"))
+print(bar)
 
 
