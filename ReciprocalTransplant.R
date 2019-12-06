@@ -1,6 +1,6 @@
 ####  Analysis of Field Reciprocal Transplant Data
-####  Dataset: ""
-####  
+####  Dataset: "ReciprocalTransplant.csv"
+####  Fitness data collected from 2 soil types (serpentine and sandstone) from 2012-2015
 
 library(dplyr)
 library(aster)
