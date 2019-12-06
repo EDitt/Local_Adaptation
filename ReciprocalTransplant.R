@@ -98,6 +98,8 @@ with(redata, sort(unique(as.character(varb)[fit == 1])))
 ### Variables of interest are: (Source) Population, Year, Soil type, and their interactions.
 ### Control for effects of edge position
 
+### First, will test significance of 3-way interaction between Population x Soil x Year:
+
 ### Full Model:
 aout.full <- aster(resp ~ varb +
                      fit:(Population + Year + SoilType + 
@@ -105,7 +107,7 @@ aout.full <- aster(resp ~ varb +
                             Population:Year + 
                             Year:SoilType + 
                             Population:Year:SoilType) +
-                     varb:(Edge),
+                    varb:(Edge),
                    pred, fam, varb, id, root, data = redata)
 
 summary(aout.full, show.graph = TRUE) #cannot compute standard errors
@@ -123,22 +125,153 @@ apparent
 ### My guess is that this is due to the very low survival of the sandstone soil on serpentine soil in all four years
 ### Further, this interaction is n.s. (see below)
 
-### Test significance of 3-way interaction between Population x Year x Soil type:
 aout1 <- aster(resp ~ varb +
                      fit:(Population + Year + SoilType + 
                             Population:SoilType + 
                             Population:Year + 
                             Year:SoilType) + 
                             #Population:Year:SoilType) +
-                     varb:(Edge),
+                            varb:(Edge),
                    pred, fam, varb, id, root, data = redata)
 summary(aout1)
 
-anova(aout1, aout.full) #This is not significant (p=0.3753)
-### Note: Including Plot rep as a random effect (nested within Year and Soil type) leads to the same result - n.s. 3-way interaction
+anova(aout1, aout.full) #ns (p=0.3753)
 
-### Test significance of pairwise interactions compared to model without 3-way interaction "aout1"
+### Test Pop x Soil interaction on total fitness:
 
+#allow all factors to interact with varb
+aout.full2 <- aster(resp ~ varb +
+                     varb:(Population + Year + SoilType + 
+                            Population:SoilType + 
+                            Population:Year + 
+                            Year:SoilType + 
+                            Population:Year:SoilType +
+                     Edge),
+                   pred, fam, varb, id, root, data = redata)
+
+### which factors have significant interactions with varb?
+
+aout.Pop <- aster(resp ~ varb + fit:(Population) +
+                      varb:(Year + SoilType + 
+                              Population:SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Population:Year:SoilType +
+                              Edge),
+                    pred, fam, varb, id, root, data = redata)
+
+anova(aout.Pop, aout.full2) #p<0.0001
+
+aout.Year <- aster(resp ~ varb + fit:(Year) +
+                      varb:(Population + SoilType + 
+                              Population:SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Population:Year:SoilType +
+                              Edge),
+                    pred, fam, varb, id, root, data = redata)
+
+anova(aout.Year, aout.full2) #p<0.0001
+
+aout.Soil <- aster(resp ~ varb + fit:(SoilType) +
+                      varb:(Population + Year +
+                              Population:SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Population:Year:SoilType +
+                              Edge),
+                    pred, fam, varb, id, root, data = redata)
+
+anova(aout.Soil, aout.full2) #p<0.0001
+
+aout.PopSoil <- aster(resp ~ varb + fit:(Population:SoilType) +
+                      varb:(Population + Year + SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Population:Year:SoilType +
+                              Edge),
+                    pred, fam, varb, id, root, data = redata)
+
+anova(aout.PopSoil, aout.full2) #ns
+
+aout.PopYear <- aster(resp ~ varb + fit:(Population:Year) +
+                        varb:(Population + Year + SoilType + 
+                                Population:SoilType + 
+                                Year:SoilType + 
+                                Population:Year:SoilType +
+                                Edge),
+                      pred, fam, varb, id, root, data = redata)
+anova(aout.PopYear, aout.full2) #ns
+
+aout.SoilYear <- aster(resp ~ varb + fit:(Year:SoilType) +
+                        varb:(Population + Year + SoilType + 
+                                Population:SoilType + 
+                                Population:Year + 
+                                Population:Year:SoilType +
+                                Edge),
+                      pred, fam, varb, id, root, data = redata)
+anova(aout.SoilYear, aout.full2) #p<0.0001
+
+aout.PopSoilYear <- aster(resp ~ varb + fit:(Population:Year:SoilType) +
+                      varb:(Population + Year + SoilType + 
+                              Population:SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Edge),
+                    pred, fam, varb, id, root, data = redata)
+anova(aout.PopSoilYear, aout.full2) #p=0.09244
+
+aout.edge <- aster(resp ~ varb + fit:(Edge) +
+                      varb:(Population + Year + SoilType + 
+                              Population:SoilType + 
+                              Population:Year + 
+                              Year:SoilType + 
+                              Population:Year:SoilType),
+                    pred, fam, varb, id, root, data = redata)
+anova(aout.edge, aout.full2) #ns
+
+#####
+#influence of Population, Soil, and interaction on fitness
+aout_PopSoil_full <- aster(resp ~ varb +
+                 fit:(Population + SoilType + 
+                        Population:SoilType) + 
+                 varb:(Year + 
+                         Population:Year + 
+                         Year:SoilType +
+                         Edge),
+               pred, fam, varb, id, root, data = redata)
+
+aout_PopSoil_red1 <- aster(resp ~ varb +
+                             fit:(Population:SoilType) + 
+                             varb:(Population + SoilType + Year + 
+                                     Population:Year + 
+                                     Year:SoilType +
+                                     Edge),
+                           pred, fam, varb, id, root, data = redata)
+anova(aout_PopSoil_full, aout_PopSoil_red1) #p<0.0001
+
+aout_PopSoil_red2 <- aster(resp ~ varb +
+                             fit:(Population + SoilType) + 
+                                    #Population:SoilType) + 
+                             varb:(Year + 
+                                     Population:Year + 
+                                     Year:SoilType +
+                                     Edge),
+                           pred, fam, varb, id, root, data = redata)
+anova(aout_PopSoil_red, aout_PopSoil_full, aout.full2) #p<0.0001
+
+
+aoutsub1 <- aster(resp ~ varb + fit:(SoilType) +
+                 varb:(Population + Year + 
+                         Population:SoilType + 
+                         Population:Year + 
+                         Year:SoilType + 
+                         #Population:Year:SoilType) +
+                         Edge),
+               pred, fam, varb, id, root, data = redata)
+
+
+####
 aout_PopSoil <- aster(resp ~ varb +
                  fit:(Population + Year + SoilType + 
                         #Population:SoilType + 
@@ -184,6 +317,104 @@ anova(aout_Edge, aout1) #edge is significant p<0.0001
 
 ### To incorporate variation across plot replicates, I will test Pop x Soil interactions separately for each year and 
 ### use random effect models in 2014-2015 to model variation in plot replicate
+
+#put main effects in varb?
+aout.test <- aster(resp ~ varb +
+                 fit:(Population:SoilType + 
+                        Population:Year + 
+                        Year:SoilType) + 
+                 #Population:Year:SoilType) +
+                 varb:(Edge + Population + Year + SoilType),
+               pred, fam, varb, id, root, data = redata)
+anova(aout1, aout.test) #p<0.0001
+
+aout.big <- aster(resp ~ varb +
+                     fit:(Population:SoilType + 
+                            Population:Year + 
+                            Year:SoilType) + 
+                     varb:(Edge + Population + Year + SoilType),
+                   pred, fam, varb, id, root, data = redata)
+
+##Biggest model?
+aout.full <- aster(resp ~ varb +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Population:Year:SoilType +
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+summary(aout.full) #cannot compute SEs
+aout.red1 <- aster(resp ~ varb +
+                     fit:(Population:Year:SoilType) +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red1, aout.full) #p=0.09244
+
+### Remove 3-way interaction
+aout.red2 <- aster(resp ~ varb +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+
+aout.red3 <- aster(resp ~ varb + fit:(Population:SoilType) +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red3, aout.red2) #ns - Pop x Soil does not have different effects in different layers of graph
+
+aout.red4 <- aster(resp ~ varb + fit:(Population:Year) +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red4, aout.red2) #p<0.0001 - Pop x Year
+
+aout.red5 <- aster(resp ~ varb + fit:(Year:SoilType) +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red5, aout.red2) #p<0.0001 - Year x Soil
+
+aout.red6 <- aster(resp ~ varb + fit:(Population) +
+                     varb:(Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red6, aout.red2) #ns
+
+aout.red7 <- aster(resp ~ varb + fit:(Year) +
+                     varb:(Population + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red7, aout.red2) #ns
+
+aout.red8 <- aster(resp ~ varb + fit:(SoilType) +
+                     varb:(Population + Year + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType + 
+                             Edge),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.red8, aout.red2) #ns
 
 ##############################################
 ########### ASTER MODELS - BY YEAR ###########
@@ -315,9 +546,87 @@ for (i in 1:nind)
 pout <- predict(aout1, newdata = renewdata, varvar = varb, idvar = id, root = root, se.fit = TRUE, amat = amat)
 pout$fit
 
+
+pout <- predict(aout.test, newdata = renewdata, varvar = varb, idvar = id, root = root, se.fit = TRUE, amat = amat)
+
 summary(pout) 
 bar <-cbind(pout$fit, pout$se.fit)
 dimnames(bar) <-list(as.character(newdata$Pop:newdata$Soil:newdata$Year), c("Estimate", "Std. Error"))
 print(bar)
+
+#### Will take out later
+
+ASTER_all_predict <- as.data.frame(bar)
+
+head(ASTER_all_predict)
+
+par(mfrow=c(1,4))
+
+#2012
+par(mar=c(3,3,1,0))
+plot(c(0.95, 2.2), c(0, 12), col="white", axes=F, frame.plot=F, xlab="", ylab="Lifetime Fitness", cex.lab=1.5, main="")
+axis(side=1, at=c(1, 2), labels=c("Sandstone soil", "Serpentine soil"), cex=1.5)
+axis(side=2, las=1, cex=1.25)
+
+points(c(1,1), c(ASTER_all_predict[1:2,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+points(c(2,2), c(ASTER_all_predict[3:4,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+segments(c(1, 1), c(ASTER_all_predict[1:2,1]), c(2, 2), c(ASTER_all_predict[3:4,1]), lty=c(1,2), lwd=1.5, col=c("orchid1", "black"))
+
+arrows(c(1,1), c(ASTER_all_predict[1:2,1])-c(ASTER_all_predict[1:2,2]), c(1,1), c(ASTER_all_predict[1:2,1])+c(ASTER_all_predict[1:2,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+arrows(c(2,2), c(ASTER_all_predict[3:4,1])-c(ASTER_all_predict[3:4,2]), c(2,2), c(ASTER_all_predict[3:4,1])+c(ASTER_all_predict[3:4,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+#2013
+
+par(mar=c(3,3,1,0))
+plot(c(0.95, 2.2), c(0, 1.2), col="white", axes=F, frame.plot=F, xlab="", ylab="", cex.lab=1.5, main="")
+axis(side=1, at=c(1, 2), labels=c("Sandstone soil", "Serpentine soil"), cex=1.5)
+axis(side=2, las=1, cex=1.25)
+
+points(c(1,1), c(ASTER_all_predict[5:6,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+points(c(2,2), c(ASTER_all_predict[7:8,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+segments(c(1, 1), c(ASTER_all_predict[5:6,1]), c(2, 2), c(ASTER_all_predict[7:8,1]), lty=c(1,2), lwd=1.5, col=c("orchid1", "black"))
+
+arrows(c(1,1), c(ASTER_all_predict[5:6,1])-c(ASTER_all_predict[5:6,2]), c(1,1), c(ASTER_all_predict[5:6,1])+c(ASTER_all_predict[5:6,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+arrows(c(2,2), c(ASTER_all_predict[7:8,1])-c(ASTER_all_predict[7:8,2]), c(2,2), c(ASTER_all_predict[7:8,1])+c(ASTER_all_predict[7:8,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+
+#2014
+par(mar=c(3,3,1,0))
+plot(c(0.95, 2.2), c(0, 12), col="white", axes=F, frame.plot=F, xlab="", ylab="", cex.lab=1.5, main="")
+axis(side=1, at=c(1, 2), labels=c("Sandstone soil", "Serpentine soil"), cex=1.5)
+axis(side=2, las=1, cex=1.25)
+
+points(c(1,1), c(ASTER_all_predict[9:10,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+points(c(2,2), c(ASTER_all_predict[11:12,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+segments(c(1, 1), c(ASTER_all_predict[9:10,1]), c(2, 2), c(ASTER_all_predict[11:12,1]), lty=c(1,2), lwd=1.5, col=c("orchid1", "black"))
+
+arrows(c(1,1), c(ASTER_all_predict[9:10,1])-c(ASTER_all_predict[9:10,2]), c(1,1), c(ASTER_all_predict[9:10,1])+c(ASTER_all_predict[9:10,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+arrows(c(2,2), c(ASTER_all_predict[11:12,1])-c(ASTER_all_predict[11:12,2]), c(2,2), c(ASTER_all_predict[11:12,1])+c(ASTER_all_predict[11:12,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+#2015
+par(mar=c(3,3,1,0))
+plot(c(0.95, 2.2), c(0, 3.5), col="white", axes=F, frame.plot=F, xlab="", ylab="", cex.lab=1.5, main="")
+axis(side=1, at=c(1, 2), labels=c("Sandstone soil", "Serpentine soil"), cex=1.5)
+axis(side=2, las=1, cex=1.25)
+
+points(c(1,1), c(ASTER_all_predict[13:14,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+points(c(2,2), c(ASTER_all_predict[15:16,1]), pch=c(15, 21), cex=1.5, col=c("orchid1", "black"))
+
+segments(c(1, 1), c(ASTER_all_predict[13:14,1]), c(2, 2), c(ASTER_all_predict[15:16,1]), lty=c(1,2), lwd=1.5, col=c("orchid1", "black"))
+
+arrows(c(1,1), c(ASTER_all_predict[13:14,1])-c(ASTER_all_predict[13:14,2]), c(1,1), c(ASTER_all_predict[13:14,1])+c(ASTER_all_predict[13:14,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
+arrows(c(2,2), c(ASTER_all_predict[15:16,1])-c(ASTER_all_predict[15:16,2]), c(2,2), c(ASTER_all_predict[15:16,1])+c(ASTER_all_predict[15:16,2]), angle=90, length=0.033, code=3, lwd=1, col=c("orchid1", "black"))
+
 
 
