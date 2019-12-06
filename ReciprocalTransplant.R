@@ -91,7 +91,7 @@ with(redata, sort(unique(as.character(varb)[fit == 0])))
 with(redata, sort(unique(as.character(varb)[fit == 1])))
 
 ##############################################
-################## ASTER MODELS ##############
+##### ASTER MODELS - FULL DATASET ############
 ##############################################
 
 ### Fixed-effect models
@@ -109,12 +109,175 @@ aout.full <- aster(resp ~ varb +
                    pred, fam, varb, id, root, data = redata)
 
 summary(aout.full, show.graph = TRUE) #cannot compute standard errors
+names(aout.full$coefficients)
+
+### Why can't it compute standard errors?
+info.tol <- sqrt(.Machine$double.eps)
+infomat <- aout.full$fisher
+fred <- eigen(infomat, symmetric = TRUE)
+sally <- fred$values < max(fred$values) * info.tol
+apparent <- zapsmall(fred$vectors[ , sally])
+rownames(apparent) <- names(aout.full$coefficients)
+apparent
+### It looks like many of the interactions e.g. Pop x Soil and Year x Soil perfectly predict Pop x Year x Soil
+### My guess is that this is due to the very low survival of the sandstone soil on serpentine soil in all four years
+### Further, this interaction is n.s. (see below)
+
+### Test significance of 3-way interaction between Population x Year x Soil type:
+aout1 <- aster(resp ~ varb +
+                     fit:(Population + Year + SoilType + 
+                            Population:SoilType + 
+                            Population:Year + 
+                            Year:SoilType) + 
+                            #Population:Year:SoilType) +
+                     varb:(Edge),
+                   pred, fam, varb, id, root, data = redata)
+summary(aout1)
+
+anova(aout1, aout.full) #This is not significant (p=0.3753)
+### Note: Including Plot rep as a random effect (nested within Year and Soil type) leads to the same result - n.s. 3-way interaction
+
+### Test significance of pairwise interactions compared to model without 3-way interaction "aout1"
+
+aout_PopSoil <- aster(resp ~ varb +
+                 fit:(Population + Year + SoilType + 
+                        #Population:SoilType + 
+                        Population:Year + 
+                        Year:SoilType) + 
+                 varb:(Edge),
+               pred, fam, varb, id, root, data = redata)
+
+aout_PopYear <- aster(resp ~ varb +
+                        fit:(Population + Year + SoilType + 
+                               Population:SoilType + 
+                               #Population:Year + 
+                               Year:SoilType) + 
+                        varb:(Edge),
+                      pred, fam, varb, id, root, data = redata)
+
+aout_SoilYear <- aster(resp ~ varb +
+                        fit:(Population + Year + SoilType + 
+                               Population:SoilType + 
+                               Population:Year) + 
+                               #Year:SoilType) + 
+                        varb:(Edge),
+                      pred, fam, varb, id, root, data = redata)
 
 
-#take out 3-way interaction
-aout.full2 <- aster(resp ~ varb +
-                      fit:(Pop + Year + Soil + 
-                             Pop:Soil + Pop:Year + Year:Soil) +
-                      varb:(Edge2),
-                    pred, fam, varb, id, root, data = redata)
-summary(aout.full2)
+anova(aout_PopSoil, aout1) #pop x soil is significant p<0.0001
+anova(aout_PopYear, aout1) #pop x year is significant p=0.003263
+anova(aout_SoilYear, aout1) #year x soil is significant p=0.004544
+
+# Test main effect of Edge because it is not involved in any significant interactions:
+aout_Edge <- aster(resp ~ varb +
+                         fit:(Population + Year + SoilType + 
+                                Population:SoilType + 
+                                Population:Year + 
+                         Year:SoilType),
+                         #varb:(Edge),
+                       pred, fam, varb, id, root, data = redata)
+anova(aout_Edge, aout1) #edge is significant p<0.0001
+
+#### NOTE: I did the same model selection using Plot rep (nested within year and soil type) as a random effect using the reaster function
+### The only difference in significance was in the Year x Soil interaction which was not significant in these random effect models
+### However, because there was only 1 plot per soil type in 2012 and 2013, modelling this as a random effect confounds this interaction
+
+### To incorporate variation across plot replicates, I will test Pop x Soil interactions separately for each year and 
+### use random effect models in 2014-2015 to model variation in plot replicate
+
+##############################################
+########### ASTER MODELS - BY YEAR ###########
+##############################################
+
+
+redata12 <- subset(redata, Year == "2012")
+redata13 <- subset(redata, Year == "2013")
+redata14 <- subset(redata, Year == "2014")
+redata15 <- subset(redata, Year == "2015")
+
+##In 2012-2013, there was no plot rep so will not include this factor
+
+######  2012
+aout.full12 <- aster(resp ~ varb +
+                       fit:(Population + SoilType + 
+                              Population:SoilType) +
+                       varb:Edge,
+                     pred, fam, varb, id, root, data = redata12)
+
+summary(aout.full12) #cannot compute SEs
+aout12_inter <- aster(resp ~ varb +
+                        fit:(Population + SoilType) + 
+                               #Population:SoilType) +
+                        varb:Edge,
+                      pred, fam, varb, id, root, data = redata12)
+
+summary(aout12_inter)
+anova(aout12_inter, aout.full12) #p=0.0002836 interaction significant
+
+######  2013
+aout.full13 <- aster(resp ~ varb +
+                       fit:(Population + SoilType + 
+                              Population:SoilType) +
+                       varb:Edge,
+                     pred, fam, varb, id, root, data = redata13)
+
+summary(aout.full13)
+
+aout13_inter <- aster(resp ~ varb +
+                        fit:(Population + SoilType) + 
+                        #Population:SoilType) +
+                        varb:Edge,
+                      pred, fam, varb, id, root, data = redata13)
+
+summary(aout13_inter)
+anova(aout13_inter, aout.full13) #p=0.001185
+
+##In 2014-2015, there were multiple plots per soil type so will use reaster to test the pop x soil interaction with plot replicate as a random effect
+
+######  2014
+
+rout14.full <- reaster(resp ~ varb +
+                         fit:(Population + SoilType + 
+                                Population:SoilType) +
+                         varb:Edge,
+                       list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                       pred, fam, varb, id, root, data = redata14)
+summary(rout14.full)
+rout14.inter <- reaster(resp ~ varb +
+                         fit:(Population + SoilType) + 
+                                #Population:SoilType) +
+                         varb:Edge,
+                       list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                       pred, fam, varb, id, root, data = redata14)
+
+anova(rout14.inter, rout14.full) #p<0.0001
+
+######  2015
+
+rout15.full <- reaster(resp ~ varb +
+                         fit:(Population + SoilType + 
+                                Population:SoilType) +
+                         varb:Edge,
+                       list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                       pred, fam, varb, id, root, data = redata15)
+summary(rout15.full) #warning message
+
+rout15.inter <- reaster(resp ~ varb +
+                          fit:(Population + SoilType) + 
+                          #Population:SoilType) +
+                          varb:Edge,
+                        list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                        pred, fam, varb, id, root, data = redata15)
+summary(rout15.inter)
+anova(rout15.inter, rout15.full) #p<0.0001
+
+##############################################
+################ ASTER PREDICT ###############
+##############################################
+
+### Predict number of fruits for each population x soil type in each year
+### Will use model that includes all pairwise interactions, but not 3-way interaction (can't compute SEs and not significant)
+
+
+
+
