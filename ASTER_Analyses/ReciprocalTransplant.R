@@ -90,6 +90,9 @@ redata$fit <- fit
 with(redata, sort(unique(as.character(varb)[fit == 0])))
 with(redata, sort(unique(as.character(varb)[fit == 1])))
 
+#save R data
+save.image(file = "DataFiles/redata.RData")
+
 ##############################################
 ##### ASTER MODELS - FULL DATASET ############
 ##############################################
@@ -202,58 +205,138 @@ aout.popyear_nointer <- aster(resp ~ varb + fit:(Population +
 anova(aout.popyear_nointer, aout.popyear) #p<0.0001
 
 ### Test main effects
+# Model without population interactions
 aout.pop <- aster(resp ~ varb + fit:(Population) +
                           varb:(Year + 
                                 SoilType +
-                                Population:Year +
                                 Year:SoilType +
-                                Population:SoilType +
                                 Edge),
                       pred, fam, varb, id, root, data = redata)
+# Same model but without population main effect
 aout.nopop <- aster(resp ~ varb +
                     varb:(Year + 
                             SoilType +
-                            Population:Year +
                             Year:SoilType +
-                            Population:SoilType +
                             Edge),
                   pred, fam, varb, id, root, data = redata)
 anova(aout.nopop, aout.pop) #p<0.0001
 
+# Model without year interactions
 aout.year <- aster(resp ~ varb + fit:(Year) +
                     varb:(Population + 
                             SoilType +
-                            Population:Year +
-                            Year:SoilType +
                             Population:SoilType +
                             Edge),
                   pred, fam, varb, id, root, data = redata)
+# Same model but without year main effect
 aout.noyear <- aster(resp ~ varb +
                      varb:(Population + 
                              SoilType +
-                             Population:Year +
-                             Year:SoilType +
                              Population:SoilType +
                              Edge),
                    pred, fam, varb, id, root, data = redata)
 anova(aout.noyear, aout.year) #ns
 
+# Model without soil interactions
 aout.soil <- aster(resp ~ varb + fit:(SoilType) +
                      varb:(Year +
                              Population + 
                              Population:Year +
-                             Year:SoilType +
-                             Population:SoilType +
                              Edge),
                    pred, fam, varb, id, root, data = redata)
+# Same model but without soil main effect
 aout.nosoil <- aster(resp ~ varb +
                      varb:(Year +
                              Population + 
                              Population:Year +
-                             Year:SoilType +
-                             Population:SoilType +
                              Edge),
                    pred, fam, varb, id, root, data = redata)
 anova(aout.nosoil, aout.soil) #p<0.0001
 
-####  Deviance is very low for main effects
+
+##############################################
+######### ASTER MODELS - BY YEAR #############
+##############################################
+
+### Will test Pop x Soil interaction for each year separately
+### In 2014-2015 model random effects of "plot rep" nested within soil type using Reaster
+### Fixed-effect models for 2012-2013 because only one plot rep per soil type
+### Variables of interest are: (Source) Population, Soil type, and their interaction
+### Control for effects of edge position
+
+redata12 <- subset(redata, Year == "2012")
+redata13 <- subset(redata, Year == "2013")
+redata14 <- subset(redata, Year == "2014")
+redata15 <- subset(redata, Year == "2015")
+
+#In 2012-2013, there was no plot rep so will not include this factor
+
+###2012:
+aout.full12 <- aster(resp ~ varb +
+                       fit:(Population + SoilType + 
+                              Population:SoilType) +
+                       varb:Edge,
+                     pred, fam, varb, id, root, data = redata12)
+summary(aout.full12, show.graph = TRUE) #cannot compute SEs
+
+aout12_inter <- aster(resp ~ varb +
+                        fit:(Population + SoilType) + 
+                               #Population:SoilType) +
+                        varb:Edge,
+                      pred, fam, varb, id, root, data = redata12)
+
+summary(aout12_inter)
+anova(aout12_inter, aout.full12) #p=0.0002836 interaction significant
+
+###2013:
+aout.full13 <- aster(resp ~ varb +
+                       fit:(Population + SoilType + 
+                              Population:SoilType) +
+                       varb:Edge,
+                     pred, fam, varb, id, root, data = redata13)
+summary(aout.full13, show.graph = TRUE)
+
+aout13_inter <- aster(resp ~ varb +
+                        fit:(Population + SoilType) + 
+                        #Population:SoilType) +
+                        varb:Edge,
+                      pred, fam, varb, id, root, data = redata13)
+
+summary(aout13_inter)
+anova(aout13_inter, aout.full13) #p=0.001185
+
+###In 2014-2015 there was more than one plot per soil type. Will test Pop x Soil type interaction using reaster
+
+###2014:
+rout14.full <- reaster(resp ~ varb +
+                         fit:(Population + SoilType + 
+                                Population:SoilType) +
+                         varb:Edge,
+                       list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                       pred, fam, varb, id, root, data = redata14)
+summary(rout14.full)
+rout14.inter <- reaster(resp ~ varb +
+                          fit:(Population + SoilType) + 
+                                 #Population:SoilType) +
+                          varb:Edge,
+                        list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                        pred, fam, varb, id, root, data = redata14)
+summary(rout14.inter)
+anova(rout14.inter, rout14.full) #p<0.0001
+
+###2015:
+rout15.full <- reaster(resp ~ varb +
+                         fit:(Population + SoilType + 
+                                Population:SoilType) +
+                         varb:Edge,
+                       list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                       pred, fam, varb, id, root, data = redata15)
+summary(rout15.full) #warning message standard erros infinite due to estimated Fisher information matrix not positive definite
+rout15.inter <- reaster(resp ~ varb +
+                          fit:(Population + SoilType) + 
+                          #Population:SoilType) +
+                          varb:Edge,
+                        list(block = ~ 0 + fit:SoilType:Plot_Rep),
+                        pred, fam, varb, id, root, data = redata15)
+summary(rout15.inter)
+anova(rout15.inter, rout15.full) #p<0.0001
