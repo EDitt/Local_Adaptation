@@ -205,6 +205,24 @@ aout.popyear_nointer <- aster(resp ~ varb + fit:(Population +
 anova(aout.popyear_nointer, aout.popyear) #p<0.0001
 
 ### Test main effects
+# Edge effect
+aout.edge <- aster(resp ~ varb +
+                 fit:(Edge) +
+                 varb:(Population + Year + SoilType + 
+                        Population:SoilType + 
+                        Population:Year + 
+                        Year:SoilType),
+               pred, fam, varb, id, root, data = redata)
+# Same model without edge main effect
+aout.noedge <- aster(resp ~ varb +
+                     #fit:(Edge) +
+                     varb:(Population + Year + SoilType + 
+                             Population:SoilType + 
+                             Population:Year + 
+                             Year:SoilType),
+                   pred, fam, varb, id, root, data = redata)
+anova(aout.noedge, aout.edge) #p=0.07849
+
 # Model without population interactions
 aout.pop <- aster(resp ~ varb + fit:(Population) +
                           varb:(Year + 
