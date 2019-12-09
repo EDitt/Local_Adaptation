@@ -184,7 +184,7 @@ arrows(c(2,2), c(ASTER_all_predict[15:16,1])-c(ASTER_all_predict[15:16,2]), c(2,
 
 ## Posthoc significance tests 
 ## Difference in predicted number of fruits between source populations on each soil type
-## Bonferroni corrected p-values
+## P-values should be corrected for 8 tests (x8 for Bonferroni corrected p-values)
 
 ## T-test Statistics
 SampleSize <- aggregate(fieldnoNA$PositionColumn, by=list(fieldnoNA$Population, fieldnoNA$SoilType, fieldnoNA$Year), length)
