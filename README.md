@@ -1,5 +1,5 @@
 # Leptosiphon local adaptation
-This Github repository contains scripts used in the paper "Selective factors influencing lodal adaptation and fitness trade-offs to Serpentine Soil in Leptosiphon parviflorus"
+This Github repository contains scripts used in the paper "Adaptive differentiation at a microgeographic scale persists despite temporal variation in the magnitude of selection"
 
 ## ASTER analyses
 This folder contains information, data, and scripts used to analyze fitness data with ASTER models
