@@ -49,6 +49,15 @@ anova(aout.popyear, aout1) #p<0.0001
 ### A model that allows all interactions to vary with varb (different slopes for relationship between each variable and fitness component) fits the best
 ### Will use this model "aout1" for predict function
 
+# alternative
+aout1 <- aster(resp ~ varb +
+                 fit:(Population + Year + SoilType + 
+                         Population:SoilType + 
+                         Population:Year + 
+                         Year:SoilType + 
+                         Edge),
+               pred, fam, varb, id, root, data = redata)
+
 ##############################################
 ############## ASTER PREDICT #################
 ##############################################
