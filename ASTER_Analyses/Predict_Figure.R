@@ -50,12 +50,10 @@ anova(aout.popyear, aout1) #p<0.0001
 ### Will use this model "aout1" for predict function
 
 # alternative
-aout1 <- aster(resp ~ varb +
-                 fit:(Population + Year + SoilType + 
-                         Population:SoilType + 
+aout1 <- aster(resp ~ varb + varb:(Year + SoilType + Edge) +
+                 fit:(Population + Population:SoilType + 
                          Population:Year + 
-                         Year:SoilType + 
-                         Edge),
+                         Year:SoilType),
                pred, fam, varb, id, root, data = redata)
 
 ##############################################
@@ -71,6 +69,7 @@ newdata <- expand.grid(Population=levels(redata$Population), SoilType=levels(red
 
 ### "Typical Individuals"
 newdata$Edge <- "Non-edge"
+#newdata$Edge <- "Edge"
 
 ### Add arbitrary values for response vector
 for (v in vars)
@@ -205,13 +204,80 @@ Df.Stats$Var <- Df.Stats$SD^2
 Df.Stats$VarxN <- Df.Stats$Var * Df.Stats$N
 
 #reshape for t-test
-Df.Stats_long <- reshape(Df.Stats, idvar = c("Soil", "Year"), timevar = "Pop", direction = "wide")
+Df.Stats_wide <- reshape(Df.Stats, idvar = c("Soil", "Year"), timevar = "Pop", direction = "wide")
 
 #calculating T-statistics
-Df.Stats_long$Pop_diff <- Df.Stats_long$Predict.SerpPop - Df.Stats_long$Predict.SandPop
-Df.Stats_long$CommonVar <- (Df.Stats_long$VarxN.SerpPop + Df.Stats_long$VarxN.SandPop) / (Df.Stats_long$N.SerpPop + Df.Stats_long$N.SandPop - 2)
-Df.Stats_long$Tstat_denominator <- sqrt((Df.Stats_long$CommonVar/Df.Stats_long$N.SerpPop) + (Df.Stats_long$CommonVar/Df.Stats_long$N.SandPop))
-Df.Stats_long$Tvalue <- Df.Stats_long$Pop_diff / Df.Stats_long$Tstat_denominator
-Df.Stats_long$df <- Df.Stats_long$N.SerpPop + Df.Stats_long$N.SandPop - 2
+Df.Stats_wide$Pop_diff <- Df.Stats_wide$Predict.SerpPop - Df.Stats_wide$Predict.SandPop
+Df.Stats_wide$CommonVar <- (Df.Stats_wide$VarxN.SerpPop + Df.Stats_wide$VarxN.SandPop) / (Df.Stats_wide$N.SerpPop + Df.Stats_wide$N.SandPop - 2)
+Df.Stats_wide$Tstat_denominator <- sqrt((Df.Stats_wide$CommonVar/Df.Stats_wide$N.SerpPop) + (Df.Stats_wide$CommonVar/Df.Stats_wide$N.SandPop))
+Df.Stats_wide$Tvalue <- Df.Stats_wide$Pop_diff / Df.Stats_wide$Tstat_denominator
+Df.Stats_wide$df <- Df.Stats_wide$N.SerpPop + Df.Stats_wide$N.SandPop - 2
+
+?pt
+pt(Df.Stats_wide$Tvalue, Df.Stats_long$df, lower.tail = FALSE)
+rownames(Df.Stats_wide)
+
+### taken from: https://stats.stackexchange.com/questions/30394/how-to-perform-two-sample-t-tests-in-r-by-inputting-sample-statistics-rather-tha
+
+t.test2 <- function(m1,m2,s1,s2,n1,n2,m0=0,equal.variance=FALSE)
+{
+  if( equal.variance==FALSE ) 
+  {
+    se <- sqrt( (s1^2/n1) + (s2^2/n2) )
+    # welch-satterthwaite df
+    df <- ( (s1^2/n1 + s2^2/n2)^2 )/( (s1^2/n1)^2/(n1-1) + (s2^2/n2)^2/(n2-1) )
+  } else
+  {
+    # pooled standard deviation, scaled by the sample sizes
+    se <- sqrt( (1/n1 + 1/n2) * ((n1-1)*s1^2 + (n2-1)*s2^2)/(n1+n2-2) ) 
+    df <- n1+n2-2
+  }      
+  t <- (m1-m2-m0)/se 
+  dat <- c(m1-m2, se, t, 2*pt(-abs(t),df))    
+  names(dat) <- c("Difference of means", "Std Error", "t", "p-value")
+  return(dat) 
+}
+
+
+Results <- lapply(row.names(Df.Stats_wide), function(x) {t.test2(
+  Df.Stats_wide[x,"Predict.SandPop"], Df.Stats_wide[x,"Predict.SerpPop"],
+  Df.Stats_wide[x, "SD.SandPop"], Df.Stats_wide[x,"SD.SerpPop"],
+  Df.Stats_wide[x,"N.SandPop"], Df.Stats_wide[x,"N.SerpPop"],
+  0)
+})
+names(Results) <- row.names(Df.Stats_wide)
+
+
+##############
+
+t.test2(Df.Stats_wide[1,"Predict.SandPop"], Df.Stats_wide[1,"Predict.SerpPop"],
+        Df.Stats_wide[1, "SD.SandPop"], Df.Stats_wide[1,"SD.SerpPop"],
+        Df.Stats_wide[1,"N.SandPop"], Df.Stats_wide[1,"N.SerpPop"],
+        0)
+
+rows <- list(1:8)
+row.names(Df.Stats_wide)
+
+Results <- t.test2(Df.Stats_wide$Predict.SandPop, Df.Stats_wide$Predict.SerpPop,
+        Df.Stats_wide$SD.SandPop, Df.Stats_wide$SD.SerpPop,
+        Df.Stats_wide$N.SandPop, Df.Stats_wide$N.SerpPop,
+        0)
+
+Results <- apply(Df.Stats_wide, Margin=1,
+                 t.test2(Df.Stats_wide$Predict.SandPop, Df.Stats_wide$Predict.SerpPop,
+                         Df.Stats_wide$SD.SandPop, Df.Stats_wide$SD.SerpPop,
+                         Df.Stats_wide$N.SandPop, Df.Stats_wide$N.SerpPop,
+                         0)
+)
+
+Results <- apply(Df.Stats_wide, Margin=1, function(x) {
+  t.test2(Df.Stats_wide[,"Predict.SandPop"], Df.Stats_wide[,"Predict.SerpPop"],
+          Df.Stats_wide[,"SD.SandPop"], Df.Stats_wide[,"SD.SerpPop"],
+          Df.Stats_wide[,"N.SandPop"], Df.Stats_wide[,"N.SerpPop"],
+                               0)
+})
+
+
+
 
 

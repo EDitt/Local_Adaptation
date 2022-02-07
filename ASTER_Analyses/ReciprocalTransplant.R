@@ -231,7 +231,7 @@ aout.pop <- aster(resp ~ varb + fit:(Population) +
                                 Edge),
                       pred, fam, varb, id, root, data = redata)
 # Same model but without population main effect
-aout.nopop <- aster(resp ~ varb +
+aout.nopop <- aster(resp ~ varb + 
                     varb:(Year + 
                             SoilType +
                             Year:SoilType +
@@ -253,7 +253,7 @@ aout.noyear <- aster(resp ~ varb +
                              Population:SoilType +
                              Edge),
                    pred, fam, varb, id, root, data = redata)
-anova(aout.noyear, aout.year) #ns
+anova(aout.noyear, aout.year) #p<0.0001
 
 # Model without soil interactions
 aout.soil <- aster(resp ~ varb + fit:(SoilType) +
@@ -358,3 +358,24 @@ rout15.inter <- reaster(resp ~ varb +
                         pred, fam, varb, id, root, data = redata15)
 summary(rout15.inter)
 anova(rout15.inter, rout15.full) #p<0.0001
+
+
+##############################################
+######### REASTER MODELS - 2014-15 ###########
+##############################################
+
+redata14.15 <- subset(redata, Year == "2014" | Year == "2015")
+
+raout1 <- aster(resp ~ varb +
+                 fit:(Population + Year + SoilType + 
+                        Population:SoilType + 
+                        Population:Year + 
+                        Year:SoilType + 
+                 Population:Year:SoilType) +
+                 varb:(Edge),
+                list(block = ~ 0 + fit:Year:SoilType:Plot_Rep),
+               pred, fam, varb, id, root, data = redata14.15)
+summary(raout1)
+
+
+
