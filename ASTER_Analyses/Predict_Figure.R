@@ -25,7 +25,6 @@ aout1 <- aster(resp ~ varb:Edge +
 
 ### Predict number of fruits for each population x soil type in each year
 ### Will use model that includes all pairwise interactions, but not 3-way interaction (can't compute SEs for this model and interaction not significant)
-### Model allows for a different slope between covariate and each fitness component
 
 ### Dataframe for predictions
 newdata <- expand.grid(Population=levels(redata$Population), SoilType=levels(as.factor(redata$SoilType)), Year=levels(redata$Year))
