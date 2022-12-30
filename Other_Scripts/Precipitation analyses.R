@@ -1,6 +1,8 @@
 ####  Analysis of Rainfall Data
 ####  Dataset: "JR daily precip 1983-2015.xls"
-####  Obtained from Jasper Ridge Biological Preserve on 9/10/2015
+####  Obtained from Jasper Ridge Biological Preserve on 9/10/2015 from Nona Chiariello
+###         Data were collected from weather station at Jasper Ridge Biological Preserve as well as 
+###         Woodside Fire Station from NOAA (used to fill in gaps when precipitation data were missing from JRBP)
 
 library(readxl)
 library(tidyr)
@@ -15,6 +17,7 @@ library(ggthemes)
 
 #read in excel file
 precip <- read_excel("JR daily precip 1983-2015.xls")
+
 str(precip)
 
 #combine first two rows as header
@@ -72,6 +75,10 @@ precip_df$date3 <- as.Date(precip_df$date3, "%d/%m/%Y") #date format
 
 aggregate(precip_df$Day, by=list(precip_df$Year), length) #check
 
+colnames(precip_df)[1] <- "Day_of_Year"
+write.csv(precip_df, file="JRPrecipitationData.csv",
+          quote=FALSE, row.names = FALSE)
+# this formatted version uploaded to Dryad
 
 ##############################################
 ######### GROWING SEASON RAINFALL ############
