@@ -10,7 +10,7 @@ There were three main fitness components included in ASTER analyses:
   -whether or not the plant survived to flower
 - Number of Flowers (`Num_flrs`) - zero-truncated poisson distribution
   -The total number of flowers produced
-- Number of Fruits (`Num_fruits`) - zero-truncated poisson distribution
+- Number of Fruits (`Num_fruits`) - poisson distribution
   -The total number of fruits produced
 
 # Independent Variables
