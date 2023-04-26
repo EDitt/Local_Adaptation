@@ -1,5 +1,5 @@
 # Leptosiphon local adaptation
-This Github repository contains scripts used in the paper "Adaptive differentiation at a microgeographic scale persists despite temporal variation in the magnitude of selection"
+This Github repository contains scripts used in the paper "Temporal variation in selection influences microgeographic local adaptation"
 
 ## ASTER analyses
 This folder contains information, data, and scripts used to analyze fitness data with ASTER models
